@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du Killer</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        input, button { padding: 10px; margin: 5px; font-size: 1rem; }
+        #game, #join, #lobby, #mission { display: none; }
+        .hidden { display: none; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+</head>
+<body>
+
+    <h1>🔪 Jeu du Killer</h1>
+
+    <div id="home">
+        <button onclick="createGame()">Créer une partie</button>
+        <button onclick="showJoin()">Rejoindre une partie</button>
+    </div>
+
+    <div id="join">
+        <h2>Rejoindre une partie</h2>
+        <input id="joinCode" placeholder="Code de la partie">
+        <input id="playerName" placeholder="Ton prénom">
+        <button onclick="joinGame()">Rejoindre</button>
+    </div>
+
+    <div id="lobby">
+        <h2>Code de la partie : <span id="gameCodeDisplay"></span></h2>
+        <p>Joueurs inscrits :</p>
+        <ul id="playerList"></ul>
+        <button id="startBtn" onclick="startGame()">Lancer la partie</button>
+    </div>
+
+    <div id="mission">
+        <h2>Ta mission 🎯</h2>
+        <p id="missionText"></p>
+        <h3>Ta cible 👤</h3>
+        <p id="targetText"></p>
+    </div>
+
+    <script>
+       const firebaseConfig = {
+  apiKey: "AIzaSyBAgpkTnrkML3IahRDwMb27lLZ0MwwnzgA",
+  authDomain: "le-killer-de-la-bastide.firebaseapp.com",
+  projectId: "le-killer-de-la-bastide",
+  storageBucket: "le-killer-de-la-bastide.firebasestorage.app",
+  messagingSenderId: "1007289482448",
+  appId: "1:1007289482448:web:01814ae0e6f932d31df2d5"
+};
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const missions = [
+            const missions = [
+    "Faire boire un verre 🍹",
+    "Prendre un selfie 🤳",
+    "Faire dire 'banane' 🍌",
+    "Donner un objet 🎁",
+    "Faire chanter 🎶",
+    "Faire s'asseoir 🪑",
+    "Faire raconter une blague 😂",
+    "Prendre un stylo ✏️",
+    "Marcher 10 pas 🚶",
+    "Écrire son prénom 🖊️",
+    "Donner une poignée de main 🤝",
+    "Dire 'bonjour' en anglais 🇬🇧",
+    "Toucher un mur 🧱",
+    "Regarder l'heure ⏰",
+    "Dire son plat préféré 🍽️",
+    "Mettre les mains sur la tête 🙆",
+    "Dire un chiffre au hasard 🔢",
+    "Faire un clin d'œil 😉",
+    "Taper dans la main de quelqu'un ✋",
+    "Toucher un objet rouge 🔴",
+    "Dire le mot 'fromage' 🧀",
+    "Se lever puis se rasseoir 🪑",
+    "Donner un high five 🙌",
+    "Dire une couleur 🎨",
+    "Dire 'j'ai faim' 🍔",
+    "Mimer un animal 🐒",
+    "Faire un cœur avec les mains ❤️",
+    "Chuchoter quelque chose 🤫",
+    "S'étirer 🧘",
+    "Dire un prénom qui n’est pas le sien 👤",
+    "Toucher une porte 🚪",
+    "Parler d’un film 🎬",
+    "Mettre ses mains dans ses poches 👖",
+    "Demander l’heure à quelqu’un ⌚",
+    "Imiter un accent 🎭",
+    "Dire 'oui' deux fois d'affilée ✅",
+    "Taper du pied 👣",
+    "Regarder par la fenêtre 🪟",
+    "Tirer la langue 👅",
+    "Dire 'c’est vrai' 🙊",
+    "Mettre les bras croisés 🙅",
+    "Dire un pays 🌍",
+    "Dire 'coucou' 👋",
+    "Toucher un livre 📚",
+    "Montrer du doigt 📌",
+    "Dire 'je sais pas' 🤷",
+    "Dire le nom d’un mois 📅",
+    "Demander un stylo ✏️",
+    "Imiter une sirène 🚨",
+    "Souffler très fort 😤",
+    "Parler d’un sport 🏀",
+    "Chanter une note 🎵",
+    "Dire 'au revoir' 👋",
+    "Faire semblant de tomber 🤦",
+    "Dire un animal 🐶",
+    "Faire un signe de la main 👋"
+];
+
+        ];
+
+        let currentGameId = null;
+        let currentPlayerId = null;
+
+        function randomCode() {
+            return Math.random().toString(36).substring(2, 6).toUpperCase();
+        }
+
+        function createGame() {
+            const code = randomCode();
+            db.collection("games").doc(code).set({ players: [], started: false });
+            currentGameId = code;
+            document.getElementById("gameCodeDisplay").innerText = code;
+            document.getElementById("home").style.display = "none";
+            document.getElementById("lobby").style.display = "block";
+            listenPlayers();
+        }
+
+        function showJoin() {
+            document.getElementById("home").style.display = "none";
+            document.getElementById("join").style.display = "block";
+        }
+
+        function joinGame() {
+            const code = document.getElementById("joinCode").value.toUpperCase();
+            const name = document.getElementById("playerName").value.trim();
+            if (!code || !name) return alert("Remplis tous les champs !");
+            currentGameId = code;
+            const playerRef = db.collection("games").doc(code).collection("players").doc();
+            playerRef.set({ name: name, mission: "", target: "" });
+            currentPlayerId = playerRef.id;
+            db.collection("games").doc(code).onSnapshot(doc => {
+                if (doc.data()?.started) {
+                    db.collection("games").doc(code).collection("players").doc(currentPlayerId).get().then(playerDoc => {
+                        const data = playerDoc.data();
+                        document.getElementById("missionText").innerText = data.mission;
+                        document.getElementById("targetText").innerText = data.target;
+                        document.getElementById("join").style.display = "none";
+                        document.getElementById("mission").style.display = "block";
+                    });
+                }
+            });
+            alert("Inscrit dans la partie !");
+        }
+
+        function listenPlayers() {
+            db.collection("games").doc(currentGameId).collection("players").onSnapshot(snapshot => {
+                const list = document.getElementById("playerList");
+                list.innerHTML = "";
+                snapshot.forEach(doc => {
+                    const li = document.createElement("li");
+                    li.textContent = doc.data().name;
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        function startGame() {
+            db.collection("games").doc(currentGameId).collection("players").get().then(snapshot => {
+                const players = [];
+                snapshot.forEach(doc => players.push({ id: doc.id, name: doc.data().name }));
+
+                // Mélanger la liste
+                players.sort(() => Math.random() - 0.5);
+
+                // Assigner cibles + missions
+                players.forEach((player, i) => {
+                    const target = players[(i + 1) % players.length].name;
+                    const mission = missions[Math.floor(Math.random() * missions.length)];
+                    db.collection("games").doc(currentGameId).collection("players").doc(player.id).update({
+                        target: target,
+                        mission: mission
+                    });
+                });
+
+                // Marquer la partie comme commencée
+                db.collection("games").doc(currentGameId).update({ started: true });
+            });
+        }
+    </script>
+
+</body>
+</html>
